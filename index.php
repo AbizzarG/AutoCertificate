@@ -3,6 +3,7 @@
 $templateFile = __DIR__ . '/template.png';
 $outputDir    = __DIR__ . '/hasil_sertifikat/';
 
+// Buat folder output jika belum ada
 if (!file_exists($outputDir)) { mkdir($outputDir, 0777, true); }
 
 $pesan = "";
@@ -18,14 +19,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $image = (strtolower($ext) == 'png') ? imagecreatefrompng($templateFile) : imagecreatefromjpeg($templateFile);
 
     // --- 3. KONFIGURASI SPESIFIK PER ITEM ---
-    // Di sini Anda mengatur Font, Ukuran, Warna, dan Posisi masing-masing
     
     $dataSertifikat = [
-        
-        // 1. Nomor Sertifikat (Biasanya font tegas/kecil)
+        // 1. Nomor Sertifikat 
         'no_sertifikat' => [
             'text'  => $_POST['no_sertifikat'],
-            'x'     => 657  , 
+            'x'     => 647  , 
             'y'     => 437,
             'size'  => 30,                 // Ukuran Font
             'font'  => '/Poppins-Regular.ttf',   // Nama File Font
@@ -35,14 +34,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         // 2. Tahun Sertifikat
         'thn_sertifikat' => [
             'text'  => $_POST['thn_sertifikat'],
-            'x'     => 1233, 
+            'x'     => 1239, 
             'y'     => 437,
             'size'  => 30,
             'font'  => '/Poppins-Regular.ttf',
             'color' => [30, 54, 83]        
         ],
 
-        // 3. Nama Penerima (Biasanya Paling Besar & Font Bagus)
+        // 3. Nama Penerima (AUTO CENTER)
         'nama_penerima' => [
             'text'  => $_POST['nama_penerima'],
             'x'     => 'CENTER', 
@@ -56,7 +55,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         'nim_penerima' => [
             'text'  => $_POST['nim_penerima'],
             'x'     => 930, 
-            'y'     => 854,
+            'y'     => 859,
             'size'  => 36,
             'font'  => '/Poppins-Regular.ttf',
             'color' => [30, 54, 83]
@@ -66,8 +65,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         'thn_laksana' => [
             'text'  => $_POST['thn_laksana'],
             'x'     => 1420, 
-            'y'     => 930,
-            'size'  => 26,
+            'y'     => 934,
+            'size'  => 23,
             'font'  => '/Poppins-Regular.ttf',
             'color' => [0, 0, 0]
         ],
@@ -76,8 +75,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         'tgl_laksana' => [
             'text'  => $_POST['tgl_laksana'],
             'x'     => 730, 
-            'y'     => 975,
-            'size'  => 26,
+            'y'     => 977,
+            'size'  => 23,
             'font'  => '/Poppins-Regular.ttf',
             'color' => [0, 0, 0]
         ],
@@ -93,27 +92,43 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         ]
     ];
 
-    // --- LOOP PROCESSING ---
+    // --- LOOP PROCESSING (REVISI PERBAIKAN ERROR) ---
     foreach ($dataSertifikat as $key => $item) {
-        // 1. Validasi Font Path
+        // A. Validasi Font
         $fontPath = realpath(__DIR__ . '/' . $item['font']);
-        if (!$fontPath) {
-            // Fallback jika font khusus tidak ada, pakai default sistem (biar tidak error fatal)
-            // Tapi sebaiknya pastikan file font ada.
-            die("Error: Font '{$item['font']}' tidak ditemukan di folder.");
-        }
+        if (!$fontPath) { die("Error: Font '{$item['font']}' tidak ditemukan."); }
 
-        // 2. Buat Warna Khusus untuk item ini
-        // Format array color [Red, Green, Blue]
+        // B. Siapkan Warna
         $colorAllocated = imagecolorallocate($image, $item['color'][0], $item['color'][1], $item['color'][2]);
 
-        // 3. Tulis Teks
+        // C. LOGIKA POSISI X (NORMAL vs CENTER) - DIPERBAIKI
+        $posisi_X = 0; // Inisialisasi awal integer
+
+        // Cek apakah 'CENTER' (menggunakan strtoupper biar huruf kecil/besar dianggap sama)
+        // Dan pastikan nilai 'x' dikonversi jadi string dulu sebelum dicek
+        $configX = strval($item['x']); 
+
+        if (strtoupper($configX) === 'CENTER') {
+            // --- LOGIKA HITUNG TENGAH ---
+            $bbox = imagettfbbox($item['size'], 0, $fontPath, $item['text']);
+            $textWidth = $bbox[2] - $bbox[0];
+            $imageWidth = imagesx($image);
+            
+            // Hitung dan bulatkan jadi integer
+            $posisi_X = intval(($imageWidth - $textWidth) / 2);
+        } else {
+            // --- LOGIKA MANUAL ---
+            // Pastikan nilai dikonversi paksa jadi Integer (Angka)
+            $posisi_X = intval($item['x']);
+        }
+
+        // D. Tulis Teks ke Gambar (Sekarang $posisi_X pasti Angka)
         imagettftext(
             $image, 
             $item['size'], 
-            0, // Sudut kemiringan (0 = lurus)
-            $item['x'], 
-            $item['y'], 
+            0, 
+            $posisi_X,       
+            $item['y'],      
             $colorAllocated, 
             $fontPath, 
             $item['text']
@@ -168,7 +183,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <form method="POST" class="grid-form">
         <div class="full-width">
             <label>Nama Penerima</label>
-            <input type="text" name="nama_penerima" required>
+            <input type="text" name="nama_penerima" placeholder="Akan otomatis CENTER" required>
         </div>
         
         <div>
